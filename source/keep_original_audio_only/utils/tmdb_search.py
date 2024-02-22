@@ -1,4 +1,4 @@
-import tmdbsimple as tmdb
+import keep_original_audio_only.lib.tmdbsimple as tmdb
 from keep_original_audio_only.classes.Movie import Movie
 from keep_original_audio_only.utils.path_parser import extract_years_and_titles_from_path
 from keep_original_audio_only.utils.criteria_checker import does_movie_match_criteria
