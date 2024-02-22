@@ -1,3 +1,0 @@
-[submodule "source/keep_original_audio_only/lib/tmdbsimple"] 
-  path = lib/tmdbsimple
-  url = https://github.com/celiao/tmdbsimple.git/
