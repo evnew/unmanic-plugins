@@ -79,6 +79,7 @@ class PluginStreamMapper(StreamMapper):
         if stream_tags and True in list(k.lower() in ['title', 'language'] for k in stream_tags):
             
             if codec_type != 'audio' or self.audio_stream_count == 1:
+                logger.debug("Only one audio track. Nothing to to.")
                 return False
                 
             language_list = self.settings.get_setting('languages_to_keep')
@@ -137,11 +138,13 @@ def on_library_management_file_test(data):
 
     # Get the path to the file
     abspath = data.get('path')
+    logger.debug("Path is {}".format(abspath))
 
     # Get file probe
     probe = Probe(logger, allowed_mimetypes=['video'])
     if not probe.file(abspath):
         # File probe failed, skip the rest of this test
+        logger.debug("File probe failed. Doing nothing.")
         return data
 
     movie = lookup_movie(abspath, settings.get_setting('tmdb_api_key'))
@@ -152,6 +155,9 @@ def on_library_management_file_test(data):
             'message': "TMdb movie lookup returned no valid results. Cannot determine original language.",
         })
         return data
+    else:
+        logger.debug("Successfully matched movie {}: {} ({})".format(movie.id, movie.title, movie.release_year))
+        logger.debug("Movie has original language '{}'".format(movie.original_language_639_1))
 
     # Get stream mapper
     mapper = PluginStreamMapper()
@@ -200,11 +206,12 @@ def on_worker_process(data):
 
     # Get the path to the file
     abspath = data.get('file_in')
+    logger.debug("Path is {}".format(abspath))
 
     # Get file probe
     probe = Probe(logger, allowed_mimetypes=['video'])
     if not probe.file(abspath):
-        # File probe failed, skip the rest of this test
+        logger.debug("File probe failed. Doing nothing.")
         return data
 
     # Configure settings object (maintain compatibility with v1 plugins)
@@ -221,6 +228,9 @@ def on_worker_process(data):
             'message': "TMdb movie lookup returned no valid results. Cannot determine original language.",
         })
         return data
+    else:
+        logger.debug("Successfully matched movie {}: {} ({})".format(movie.id, movie.title, movie.release_year))
+        logger.debug("Movie has original language '{}'".format(movie.original_language_639_1))
 
     # Get stream mapper
     mapper = PluginStreamMapper()
