@@ -1,6 +1,6 @@
 import importlib
 from datetime import datetime
-from utils.language_codes import language_codes
+from keep_original_audio_only.utils.language_codes import language_codes
 tmdb = importlib.import_module("keep_original_audio_only.site-packages.tmdbsimple")
 
 class Movie:
