@@ -40,7 +40,7 @@ logger = logging.getLogger("Unmanic.Plugin.tmdb_default_audio_to_original_langua
 class Settings(PluginSettings):
     settings = {
         "tmdb_api_key": "",
-        "languages_to_keep": ""
+        "languages_to_keep": "",
     }
 
     def __init__(self, *args, **kwargs):
