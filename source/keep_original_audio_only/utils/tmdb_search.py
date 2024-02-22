@@ -1,7 +1,8 @@
-import keep_original_audio_only.lib.tmdbsimple as tmdb
+import importlib
 from keep_original_audio_only.classes.Movie import Movie
 from keep_original_audio_only.utils.path_parser import extract_years_and_titles_from_path
 from keep_original_audio_only.utils.criteria_checker import does_movie_match_criteria
+tmdb = importlib.import_module("keep_original_audio_only.site-packages.tmdbsimple")
 
 def lookup_movie(path, api_key):
     tmdb.API_KEY = api_key
