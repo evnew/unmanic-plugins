@@ -59,6 +59,7 @@ class PluginStreamMapper(StreamMapper):
     def __init__(self):
         super(PluginStreamMapper, self).__init__(logger, ['video', 'audio', 'data'])
         self.settings = None
+        self.languages_to_remove = []
         
 
     def set_settings(self, settings):
@@ -68,10 +69,16 @@ class PluginStreamMapper(StreamMapper):
         self.settings = settings
         self.original_language = original_language
 
+    def set_audio_stream_to_remove(self, lang):
+        self.languages_to_remove.append(lang)
+
+    def get_languages_to_remove(self):
+        return self.languages_to_remove
+
     def test_tags_for_search_string(self, codec_type, stream_tags, stream_id):
         if stream_tags and True in list(k.lower() in ['title', 'language'] for k in stream_tags):
             
-            if codec_type != 'audio':
+            if codec_type != 'audio' or self.audio_stream_count == 1:
                 return False
                 
             language_list = self.settings.get_setting('languages_to_keep')
@@ -86,11 +93,11 @@ class PluginStreamMapper(StreamMapper):
                 stream = stream.strip()
                 if stream and stream.lower() not in languages:
                     # Found a matching language. Process this stream to remove it
-                    return True
+                    self.set_audio_stream_to_remove(stream)                    
         else:
             logger.warning(
                 "Stream #{} in file '{}' has no 'language' tag. Ignoring".format(stream_id, self.input_file))
-        return False
+        return self.languages_to_remove and len(self.languages_to_remove) > 0
 
     def test_stream_needs_processing(self, stream_info: dict):
         """Only add streams that have language task that match our list"""
@@ -165,12 +172,11 @@ def on_library_management_file_test(data):
 
     return data
 
-def remove_languages(mapper, codec_type, language_list):
-    languages = list(filter(None, language_list.split(',')))
-    for language in languages:
+def remove_languages(mapper):
+    for language in mapper.get_languages_to_remove():
         language = language.strip()
-        if language and language.lower() :
-            mapper.stream_mapping += ['-map', '-0:{}:m:language:{}'.format(codec_type, language)]
+        if language and language.lower():
+            mapper.stream_mapping += ['-map', '-0:a:m:language:{}'.format(language)]
 
 def on_worker_process(data):
     """
@@ -207,9 +213,18 @@ def on_worker_process(data):
     else:
         settings = Settings()
 
+    movie = lookup_movie(abspath, settings.get_setting('tmdb_api_key'))
+    if not movie or not movie.original_language_639_1:
+        logger.debug("TMdb movie lookup returned no valid results.")
+        data['issues'].append({
+            'id':      'keep_original_audio_only',
+            'message': "TMdb movie lookup returned no valid results. Cannot determine original language.",
+        })
+        return data
+
     # Get stream mapper
     mapper = PluginStreamMapper()
-    mapper.set_settings(settings)
+    mapper.set_settings(settings, movie.original_language_639_1)
     mapper.set_probe(probe)
 
     # Set the input file
@@ -222,9 +237,9 @@ def on_worker_process(data):
         # clear stream mappings, copy everything
         mapper.stream_mapping = ['-map', '0']
         mapper.stream_encoding = ['-c', 'copy']
+
         # set negative stream mappings to remove languages
-        remove_languages(mapper, 'a', settings.get_setting('audio_languages'))
-        remove_languages(mapper, 's', settings.get_setting('subtitle_languages'))
+        remove_languages(mapper)
 
         # Get generated ffmpeg args
         ffmpeg_args = mapper.get_ffmpeg_args()
