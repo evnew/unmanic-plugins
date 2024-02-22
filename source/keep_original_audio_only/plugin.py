@@ -73,7 +73,7 @@ class PluginStreamMapper(StreamMapper):
         self.languages_to_remove.append(lang)
 
     def get_languages_to_remove(self):
-        return self.languages_to_remove
+        return list(set([l.strip().lower() for l in self.languages_to_remove]))
 
     def test_tags_for_search_string(self, codec_type, stream_tags, stream_id):
         if stream_tags and True in list(k.lower() in ['title', 'language'] for k in stream_tags):
