@@ -57,8 +57,9 @@ class Settings(PluginSettings):
 
 class PluginStreamMapper(StreamMapper):
     def __init__(self):
-        super(PluginStreamMapper, self).__init__(logger, ['audio'])
+        super(PluginStreamMapper, self).__init__(logger, ['video', 'audio', 'data'])
         self.settings = None
+        
 
     def set_settings(self, settings):
         self.settings = settings
@@ -68,25 +69,22 @@ class PluginStreamMapper(StreamMapper):
         self.original_language = original_language
 
     def test_tags_for_search_string(self, codec_type, stream_tags, stream_id):
-        # TODO: Check if we need to add 'title' tags
-        if stream_tags and True in list(k.lower() in ['language'] for k in stream_tags):
-            # check codec and get appropriate language list
-            if codec_type == 'audio':
-                language_list = self.settings.get_setting('languages_to_keep')
-
+        if stream_tags and True in list(k.lower() in ['title', 'language'] for k in stream_tags):
+            
+            if codec_type != 'audio':
+                return False
+                
+            language_list = self.settings.get_setting('languages_to_keep')
             languages = list(filter(None, language_list.split(',')))
             languages.append(self.original_language)
             languages = [l.strip().lower() for l in languages]
 
+            logger.debug("Languages to keep: {}".format(languages))
+            logger.debug("Language found: {}".format(stream_tags.get('language', '').lower()))
+
             for stream in stream_tags.get('language', '').lower():
                 stream = stream.strip()
                 if stream and stream.lower() not in languages:
-                    # Found a matching language. Process this stream to remove it
-                    return True
-
-            for language in languages:
-                language = language.strip()
-                if language and language.lower() in stream_tags.get('language', '').lower():
                     # Found a matching language. Process this stream to remove it
                     return True
         else:
@@ -220,10 +218,6 @@ def on_worker_process(data):
     if mapper.streams_need_processing():
         # Set the output file
         mapper.set_output_file(data.get('file_out'))
-
-        if settings.get_setting('advanced'):
-            mapper.main_options += settings.get_setting('main_options').split()
-            mapper.advanced_options += settings.get_setting('advanced_options').split()
 
         # clear stream mappings, copy everything
         mapper.stream_mapping = ['-map', '0']
